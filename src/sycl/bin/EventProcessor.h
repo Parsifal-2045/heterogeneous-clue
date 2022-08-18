@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Framework/EventSetup.h"
+#include "Framework/PluginsConfig.h"
 
 #include "PluginManager.h"
 #include "StreamSchedule.h"
@@ -29,7 +30,8 @@ namespace edm {
                             std::vector<std::string> const& esproducers,
                             std::filesystem::path const& datadir,
                             std::filesystem::path const& inputFile,
-                            bool validation);
+                            bool validation,
+                            KeyValueMap const& configMap);
 
     int maxEvents() const { return source_.maxEvents(); }
     int processedEvents() const { return source_.processedEvents(); }

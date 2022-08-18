@@ -16,6 +16,7 @@
 #include "SYCLCore/chooseDevice.h"
 #include "EventProcessor.h"
 #include "PosixClockGettime.h"
+#include "Framework/PluginsConfig.h"
 
 namespace {
   void print_help(std::string const& name) {
@@ -44,6 +45,7 @@ namespace {
 
 int main(int argc, char** argv) try {
   // Parse command line arguments
+  config::PluginsConfig config("clue.config");
   setenv("SYCL_DEVICE_FILTER", "cpu,gpu", true);
   std::vector<std::string> args(argv, argv + argc);
   int numberOfThreads = 1;
@@ -126,7 +128,7 @@ int main(int argc, char** argv) try {
   std::vector<std::string> esmodules;
   if (not empty) {
     edmodules = {"PointsCloudProducer", "CLUESYCLClusterizer"};
-    esmodules = {"PointsCloudESProducer"};
+    esmodules = {"PointsCloudESProducer", "CLUEESProducer"};
     if (transfer) {
       esmodules.emplace_back("CLUEOutputESProducer");
       edmodules.emplace_back("CLUEOutputProducer");
@@ -145,7 +147,8 @@ int main(int argc, char** argv) try {
                                 std::move(esmodules),
                                 datadir,
                                 inputFile,
-                                validation);
+                                validation,
+                                config.keyValuesMap());
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events, of which " << numberOfStreams
               << " concurrently, with " << numberOfThreads << " threads." << std::endl;

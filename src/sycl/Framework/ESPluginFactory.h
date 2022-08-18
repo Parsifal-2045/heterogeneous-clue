@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "Framework/ESProducer.h"
+#include "Framework/PluginsConfig.h"
 
 class ProductRegistry;
 
@@ -47,7 +48,7 @@ namespace edm {
       };
     }  // namespace impl
 
-    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir);
+    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir, KeyValueMap const& keyValuesMap);
   }  // namespace ESPluginFactory
 }  // namespace edm
 

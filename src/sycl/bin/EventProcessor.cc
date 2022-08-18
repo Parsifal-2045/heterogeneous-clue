@@ -13,16 +13,16 @@ namespace edm {
                                  std::filesystem::path const& datadir,
                                  bool validation)
       : source_(maxEvents, runForMinutes, registry_, datadir, validation) {
-    for (auto const& name : esproducers) {
-      pluginManager_.load(name);
-      auto esp = ESPluginFactory::create(name, datadir);
-      esp->produce(eventSetup_);
-    }
+    // for (auto const& name : esproducers) {
+    //   pluginManager_.load(name);
+    //   auto esp = ESPluginFactory::create(name, datadir);
+    //   esp->produce(eventSetup_);
+    // }
 
-    //schedules_.reserve(numberOfStreams);
-    for (int i = 0; i < numberOfStreams; ++i) {
-      schedules_.emplace_back(registry_, pluginManager_, &source_, &eventSetup_, i, path);
-    }
+    // //schedules_.reserve(numberOfStreams);
+    // for (int i = 0; i < numberOfStreams; ++i) {
+    //   schedules_.emplace_back(registry_, pluginManager_, &source_, &eventSetup_, i, path);
+    // }
   }
 
   EventProcessor::EventProcessor(int maxEvents,
@@ -32,16 +32,17 @@ namespace edm {
                                  std::vector<std::string> const& esproducers,
                                  std::filesystem::path const& datadir,
                                  std::filesystem::path const& inputFile,
-                                 bool validation)
+                                 bool validation,
+                                 KeyValueMap const& configMap)
       : source_(maxEvents, runForMinutes, registry_, datadir, validation) {
     for (auto const& name : esproducers) {
       pluginManager_.load(name);
       if (name == "PointsCloudESProducer" or name == "CLUEOutputESProducer" or name == "CLUEValidatorESProducer" or
           name == "ValidatorPointsCloudESProducer") {
-        auto esp = ESPluginFactory::create(name, inputFile);
+        auto esp = ESPluginFactory::create(name, inputFile, configMap);
         esp->produce(eventSetup_);
       } else {
-        auto esp = ESPluginFactory::create(name, datadir);
+        // auto esp = ESPluginFactory::create(name, datadir);
       }
     }
 
