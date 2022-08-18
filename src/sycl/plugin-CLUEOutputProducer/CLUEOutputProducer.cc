@@ -23,10 +23,12 @@ public:
 private:
   void produce(edm::Event& event, edm::EventSetup const& eventSetup) override;
   edm::EDGetTokenT<cms::sycltools::Product<PointsCloudSYCL>> token_device_clusters;
+  edm::EDPutTokenT<cms::sycltools::Product<PluginWrapper<PointsCloud,CLUEOutputProducer>>> token_output_dir;
 };
 
 CLUEOutputProducer::CLUEOutputProducer(edm::ProductRegistry& reg)
-    : token_device_clusters(reg.consumes<cms::sycltools::Product<PointsCloudSYCL>>()) {}
+    : token_device_clusters(reg.consumes<cms::sycltools::Product<PointsCloudSYCL>>()),
+      token_output_dir(reg.produces<cms::sycltools::Product<PluginWrapper<PointsCloud,CLUEOutputProducer>>>()) {}
 
 void CLUEOutputProducer::produce(edm::Event& event, edm::EventSetup const& eventSetup) {
   bool verboseResults = true;
@@ -65,5 +67,7 @@ void CLUEOutputProducer::produce(edm::Event& event, edm::EventSetup const& event
 
     std::cout << "Ouput was saved in " << outDir << std::endl;
   }
+  
+  ctx.emplace(event, token_output_dir, std::move(results));
 }
 DEFINE_FWK_MODULE(CLUEOutputProducer);

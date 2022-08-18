@@ -54,7 +54,17 @@ namespace cms {
 
       T data_;  //!
     };
+
   }  // namespace sycltools
 }  // namespace cms
+template <typename T, typename P>
+class PluginWrapper {
+public:
+  template <typename... Args>
+  explicit PluginWrapper(Args&&... args) : obj_{std::forward<Args>(args)...} {}
+  T const& get() const { return obj_; }
+private:
+  T obj_;
+};
 
 #endif

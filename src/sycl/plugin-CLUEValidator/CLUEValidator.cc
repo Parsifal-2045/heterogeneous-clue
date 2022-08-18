@@ -22,7 +22,7 @@ std::vector<float> CLAMPED(std::vector<float> in, float upperLimit) {
       out[i] = upperLimit;
   return out;
 }
-
+class CLUEOutputProducer;
 class CLUEValidator : public edm::EDProducer {
 public:
   explicit CLUEValidator(edm::ProductRegistry& reg);
@@ -32,15 +32,13 @@ private:
   template <class T>
   bool arraysAreEqual(std::vector<T>, std::vector<T> trueDataArr);
   bool arraysClustersEqual(const PointsCloud& devicePC, const PointsCloud& truePC);
-  void transferToHost(const PointsCloudSYCL& pcDevice, PointsCloud& pc, sycl::queue stream);
-  void saveDeviceToOutputFile(const PointsCloud& pc, std::string filePath);
   std::string checkValidation(std::string const& inputFile);
   void validateOutput(const PointsCloud& pc, std::string trueOutFilePath);
-  edm::EDGetTokenT<cms::sycltools::Product<PointsCloudSYCL>> tokenPC_;
+  edm::EDGetTokenT<cms::sycltools::Product<PluginWrapper<PointsCloud,CLUEOutputProducer>>> resultsTokenPC_;
 };
 
 CLUEValidator::CLUEValidator(edm::ProductRegistry& reg)
-    : tokenPC_(reg.consumes<cms::sycltools::Product<PointsCloudSYCL>>()) {}
+    : resultsTokenPC_(reg.consumes<cms::sycltools::Product<PluginWrapper<PointsCloud, CLUEOutputProducer>>>()) {}
 
 template <class T>
 bool CLUEValidator::arraysAreEqual(std::vector<T> devicePtr, std::vector<T> trueDataArr) {
@@ -121,19 +119,9 @@ void CLUEValidator::produce(edm::Event& event, edm::EventSetup const& eventSetup
   auto outDataDir = std::make_unique<OutputDirPath>();
   *outDataDir = eventSetup.get<OutputDirPath>();
 
-  auto const& pcProduct = event.get(tokenPC_);
+  auto const& pcProduct = event.get(resultsTokenPC_);
   cms::sycltools::ScopedContextProduce ctx{pcProduct};
-  auto const& pcDevice = ctx.get(pcProduct);
-
-  auto stream = ctx.stream();
-
-  PointsCloud pc(pcDevice.n);
-  transferToHost(pcDevice, pc, stream);
-  std::cout << "Number of points: " << pcDevice.n << std::endl;
-
-  std::cout << "Saving into " << outDataDir->outFile << std::endl;
-  saveDeviceToOutputFile(pc, outDataDir->outFile);
-  std::cout << "Results were saved!" << std::endl;
+  auto const& pc = ctx.get(pcProduct).get();
 
   if (checkValidation(outDataDir->outFile) != std::string()) {
     auto ref_file = checkValidation(outDataDir->outFile);
@@ -145,31 +133,6 @@ void CLUEValidator::produce(edm::Event& event, edm::EventSetup const& eventSetup
     std::cout << "\nThere is no reference output data for the input file selected.\n";
     std::cout << "Please select one of the toyDetectors input files to validate the plugin results\n" << std::endl;
   }
-}
-
-void CLUEValidator::transferToHost(const PointsCloudSYCL& pcDevice, PointsCloud& pc, sycl::queue stream) {
-  pc.n = pcDevice.n;
-  stream.memcpy(pc.x.data(), pcDevice.x.get(), pcDevice.n * sizeof(float));
-  stream.memcpy(pc.y.data(), pcDevice.y.get(), pcDevice.n * sizeof(float));
-  stream.memcpy(pc.layer.data(), pcDevice.layer.get(), pcDevice.n * sizeof(int));
-  stream.memcpy(pc.weight.data(), pcDevice.weight.get(), pcDevice.n * sizeof(float));
-  stream.memcpy(pc.rho.data(), pcDevice.rho.get(), pcDevice.n * sizeof(float));
-  stream.memcpy(pc.delta.data(), pcDevice.delta.get(), pcDevice.n * sizeof(float));
-  stream.memcpy(pc.nearestHigher.data(), pcDevice.nearestHigher.get(), pcDevice.n * sizeof(int));
-  stream.memcpy(pc.isSeed.data(), pcDevice.isSeed.get(), pcDevice.n * sizeof(int));
-  stream.memcpy(pc.clusterIndex.data(), pcDevice.clusterIndex.get(), pcDevice.n * sizeof(int)).wait();
-}
-
-void CLUEValidator::saveDeviceToOutputFile(const PointsCloud& pc, std::string filePath) {
-  std::ofstream clueOut(filePath);
-  clueOut << "index,x,y,layer,weight,rho,delta,nh,isSeed,clusterId\n";
-  for (int i = 0; i < pc.n; i++) {
-    clueOut << i << "," << pc.x[i] << "," << pc.y[i] << "," << pc.layer[i] << "," << pc.weight[i] << "," << pc.rho[i]
-            << "," << (pc.delta[i] > 999 ? 999 : pc.delta[i]) << "," << pc.nearestHigher[i] << "," << pc.isSeed[i]
-            << "," << pc.clusterIndex[i] << "\n";
-  }
-
-  clueOut.close();
 }
 
 void CLUEValidator::validateOutput(const PointsCloud& pc, std::string trueOutFilePath) {
@@ -206,14 +169,18 @@ void CLUEValidator::validateOutput(const PointsCloud& pc, std::string trueOutFil
     }
     n++;
   }
-  std::cout << "Read true points!\n";
   iTrueDataFile.close();
 
   assert(arraysAreEqual(pc.rho, truePC.rho));
+  std::cout << "Output rho -> Ok" << '\n';
   assert(arraysAreEqual(CLAMPED(pc.delta, 999), truePC.delta));
+  std::cout << "Output delta -> Ok" << '\n';
   assert(arraysAreEqual(pc.nearestHigher, truePC.nearestHigher));
+  std::cout << "Output nearestHigher -> Ok" << '\n';
   assert(arraysAreEqual(pc.isSeed, truePC.isSeed));
+  std::cout << "Output isSeed -> Ok" << '\n';
   assert(arraysClustersEqual(pc, truePC));
+  std::cout << "Output cluster indexes -> Ok" << '\n';
 }
 
 DEFINE_FWK_MODULE(CLUEValidator);
