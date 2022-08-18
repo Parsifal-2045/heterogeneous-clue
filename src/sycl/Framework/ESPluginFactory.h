@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <type_traits>
+#include <iostream>
 
 #include "Framework/ESProducer.h"
 #include "Framework/PluginsConfig.h"
@@ -19,14 +21,29 @@ namespace edm {
       public:
         virtual ~MakerBase() = default;
 
-        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const = 0;
+        // virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const = 0;
+        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir, ConfigMap const& configMap) const = 0;
       };
 
       template <typename T>
       class Maker : public MakerBase {
       public:
-        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const override {
+        // virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir) const override {
+        //   return std::make_unique<T>(datadir);
+        // };
+
+        template<bool NotConfigurable>
+        std::unique_ptr<ESProducer> instantiate(std::filesystem::path const& datadir, ConfigMap const& configMap) const {
           return std::make_unique<T>(datadir);
+        }
+
+        template<>
+        std::unique_ptr<ESProducer> instantiate<false>(std::filesystem::path const& datadir, ConfigMap const& configMap) const {
+          return std::make_unique<T>(datadir,configMap);
+        }
+
+        virtual std::unique_ptr<ESProducer> create(std::filesystem::path const& datadir, ConfigMap const& configMap) const override {
+          return instantiate<!std::is_base_of<ConfigurableESProducer, T>::value>(datadir, configMap);
         };
       };
 
@@ -48,7 +65,7 @@ namespace edm {
       };
     }  // namespace impl
 
-    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir, KeyValueMap const& keyValuesMap);
+    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir, ConfigMap const& configMap);
   }  // namespace ESPluginFactory
 }  // namespace edm
 

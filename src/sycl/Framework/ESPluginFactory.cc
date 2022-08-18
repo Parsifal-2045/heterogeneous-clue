@@ -27,8 +27,8 @@ namespace edm {
       }
     };  // namespace impl
 
-    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir, KeyValueMap const& keyValuesMap) {
-      return impl::getGlobalRegistry().get(name)->create(datadir);
+    std::unique_ptr<ESProducer> create(std::string const& name, std::filesystem::path const& datadir, ConfigMap const& configMap) {
+      return impl::getGlobalRegistry().get(name)->create(datadir, configMap);
     }
   }  // namespace ESPluginFactory
 }  // namespace edm

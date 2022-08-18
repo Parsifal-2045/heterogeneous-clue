@@ -33,17 +33,12 @@ namespace edm {
                                  std::filesystem::path const& datadir,
                                  std::filesystem::path const& inputFile,
                                  bool validation,
-                                 KeyValueMap const& configMap)
+                                 ConfigMap const& configMap)
       : source_(maxEvents, runForMinutes, registry_, datadir, validation) {
     for (auto const& name : esproducers) {
       pluginManager_.load(name);
-      if (name == "PointsCloudESProducer" or name == "CLUEOutputESProducer" or name == "CLUEValidatorESProducer" or
-          name == "ValidatorPointsCloudESProducer") {
         auto esp = ESPluginFactory::create(name, inputFile, configMap);
         esp->produce(eventSetup_);
-      } else {
-        // auto esp = ESPluginFactory::create(name, datadir);
-      }
     }
 
     //schedules_.reserve(numberOfStreams);

@@ -31,7 +31,7 @@ namespace edm {
                             std::filesystem::path const& datadir,
                             std::filesystem::path const& inputFile,
                             bool validation,
-                            KeyValueMap const& configMap);
+                            ConfigMap const& configMap);
 
     int maxEvents() const { return source_.maxEvents(); }
     int processedEvents() const { return source_.processedEvents(); }

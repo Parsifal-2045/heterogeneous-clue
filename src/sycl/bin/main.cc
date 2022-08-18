@@ -46,6 +46,7 @@ namespace {
 int main(int argc, char** argv) try {
   // Parse command line arguments
   config::PluginsConfig config("clue.config");
+  config.updateParamsFromCLIArgs(argc, argv);
   setenv("SYCL_DEVICE_FILTER", "cpu,gpu", true);
   std::vector<std::string> args(argv, argv + argc);
   int numberOfThreads = 1;
@@ -91,9 +92,9 @@ int main(int argc, char** argv) try {
     } else if (*i == "--empty") {
       empty = true;
     } else {
-      std::cout << "Invalid parameter " << *i << std::endl << std::endl;
-      print_help(args.front());
-      return EXIT_FAILURE;
+      // std::cout << "Invalid parameter " << *i << std::endl << std::endl;
+      // print_help(args.front());
+      // return EXIT_FAILURE;
     }
   }
   if (maxEvents >= 0 and runForMinutes >= 0) {
@@ -148,7 +149,7 @@ int main(int argc, char** argv) try {
                                 datadir,
                                 inputFile,
                                 validation,
-                                config.keyValuesMap());
+                                config.configMap());
   if (runForMinutes < 0) {
     std::cout << "Processing " << processor.maxEvents() << " events, of which " << numberOfStreams
               << " concurrently, with " << numberOfThreads << " threads." << std::endl;

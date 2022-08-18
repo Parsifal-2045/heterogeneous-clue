@@ -4,7 +4,6 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fstream>
-#include <unordered_map>
 
 namespace po = boost::program_options;
 
@@ -12,49 +11,68 @@ namespace po = boost::program_options;
 #define DEFAULT_DISTANCE 20
 #define DEFAULT_DISTANCE_OUTLIER_FACTOR 2
 
-typedef std::unordered_map<std::string, std::string> KeyValueMap;
+typedef po::variables_map ConfigMap;
+
 
 namespace config {
     class PluginsConfig {
     public:
-        PluginsConfig(const std::string& path) {
+        po::options_description getDescriptionTemplate(bool useDefault=true) {
             po::options_description desc("Allowed options");
-            desc.add_options()
-                ("rho", po::value<float>()->default_value(DEFAULT_DENSITY), "set density factor level")
-                ("delta", po::value<float>()->default_value(DEFAULT_DISTANCE), "set distance factor level")
-                ("dof", po::value<float>()->default_value(DEFAULT_DISTANCE_OUTLIER_FACTOR), "set delta outlier distance factor")
-            ;
+            if (useDefault) {
+                desc.add_options()
+                    ("dc", po::value<float>()->default_value(DEFAULT_DENSITY), "set density factor level")
+                    ("rhoc", po::value<float>()->default_value(DEFAULT_DISTANCE), "set distance factor level")
+                    ("outlierDeltaFactor", po::value<float>()->default_value(DEFAULT_DISTANCE_OUTLIER_FACTOR), "set delta outlier distance factor")
+                ;
+            } else {
+                desc.add_options()
+                    ("dc", po::value<float>(), "set density factor level")
+                    ("rhoc", po::value<float>(), "set distance factor level")
+                    ("outlierDeltaFactor", po::value<float>(), "set delta outlier distance factor")
+                ;
+            }
+            return desc;
+        }
 
-            po::variables_map vm;
+        PluginsConfig(const std::string& path) {
+            auto desc = getDescriptionTemplate();
+
             std::ifstream configFile(path);
-            po::store(po::parse_config_file(configFile, desc), vm);
-            po::notify(vm);
+            po::store(po::parse_config_file(configFile, desc), configVariablesMap_);
+            po::notify(configVariablesMap_);
 
             configFile.close();
 
             std::ofstream replacedConfigFile(path);
-            replacedConfigFile << "rho=" << vm["rho"].as<float>() << std::endl
-                                << "delta=" << vm["delta"].as<float>() << std::endl
-                                << "dof=" << vm["dof"].as<float>();
+            replacedConfigFile << "dc=" << configVariablesMap_["dc"].as<float>() << std::endl
+                                << "rhoc=" << configVariablesMap_["rhoc"].as<float>() << std::endl
+                                << "outlierDeltaFactor=" << configVariablesMap_["outlierDeltaFactor"].as<float>();
             replacedConfigFile.close();
-
-            keyValuesMap_["rho"] = vm["rho"];
-            keyValuesMap_["delta"] = vm["delta"];
-            keyValuesMap_["dof"] = vm["dof"];
-  std::cout << "Hola" << std::endl;
-
-
-            std::cout << "Loaded config file " << path << std::endl;
         }
 
-        void updateParamsFromCLIArgs() {}
+        void updateParamsFromCLIArgs(int argc, char** argv) {
+            auto desc = getDescriptionTemplate(false);
+            po::variables_map vm;
+            po::store(po::command_line_parser(argc, argv).options(desc).allow_unregistered().run(), vm);
+            po::notify(vm);
 
-        const KeyValueMap& keyValuesMap() {
-            return keyValuesMap_;
+            if (vm.count("dc")) {
+                 configVariablesMap_.at("dc").value() = (boost::any)vm["dc"].as<float>();
+            }
+            if (vm.count("rhoc")) {
+                 configVariablesMap_.at("rhoc").value() = (boost::any)vm["rhoc"].as<float>();
+            }
+            if (vm.count("outlierDeltaFactor")) {
+                 configVariablesMap_.at("outlierDeltaFactor").value() = (boost::any)vm["outlierDeltaFactor"].as<float>();
+            }
         }
 
+        const ConfigMap& configMap() {
+            return configVariablesMap_;
+        }
     private:
-        KeyValueMap keyValuesMap_;
+        ConfigMap configVariablesMap_;
     };
 }
 #endif

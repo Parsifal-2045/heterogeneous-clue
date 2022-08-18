@@ -11,6 +11,8 @@ namespace edm {
 
     virtual void produce(EventSetup& eventSetup) = 0;
   };
+
+  class ConfigurableESProducer : public ESProducer {};
 }  // namespace edm
 
 #endif
