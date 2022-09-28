@@ -35,7 +35,28 @@ namespace cms::sycltools {
         gpus.erase(it + 1);
       }
     }
+
+#ifdef USE_SUB_DEVICES
+    for (auto gpu : gpus) {
+      if (gpu.get_backend() == sycl::backend::ext_oneapi_level_zero) {
+        try {
+          std::vector<sycl::device> subDevices =
+              gpu.create_sub_devices<sycl::info::partition_property::partition_by_affinity_domain>(
+                  sycl::info::partition_affinity_domain::next_partitionable);
+          temp.insert(temp.end(), subDevices.begin(), subDevices.end());
+        } catch (sycl::exception const& e) {
+          std::cerr << "GPU " << gpu.get_info<sycl::info::device::name>()
+                    << " does not support splitting into multiple sub devices. Falling back to a single device"
+                    << std::endl;
+          temp.emplace_back(gpu);
+        }
+      } else {
+        temp.emplace_back(gpu);
+      }
+    }
+#else
     temp.insert(temp.end(), gpus.begin(), gpus.end());
+#endif
     temp.insert(temp.end(), hosts.begin(), hosts.end());
     return temp;
   }
