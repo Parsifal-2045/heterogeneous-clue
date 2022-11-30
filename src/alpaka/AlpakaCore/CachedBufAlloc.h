@@ -134,6 +134,68 @@ namespace cms::alpakatools {
 
 #endif  // ALPAKA_ACC_GPU_HIP_ENABLED
 
+#ifdef ALPAKA_SYCL_ONEAPI_CPU
+    // FIXME_ pinned host memory for SYCL
+
+    //! The caching memory allocator implementation for the SYCL CPU device
+    template <typename TElem, typename TDim, typename TIdx, typename TQueue>
+    struct CachedBufAlloc<TElem, TDim, TIdx, alpaka::DevCpuSyclIntel, TQueue, void> {
+      template <typename TExtent>
+      ALPAKA_FN_HOST static auto allocCachedBuf(alpaka::DevCpuSyclIntel const& dev, TQueue queue, TExtent const& extent)
+          -> alpaka::BufCpuSyclIntel<TElem, TDim, TIdx> {
+        ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
+
+        auto& allocator = getDeviceCachingAllocator<alpaka::DevCpuSyclIntel, TQueue>(dev);
+
+        size_t width = alpaka::getWidth(extent);
+        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
+        // TODO implement pitch for TDim > 1
+        size_t pitchBytes = widthBytes;
+        size_t size = alpaka::getExtentProduct(extent);
+        size_t sizeBytes = size * sizeof(TElem);
+        void* memPtr = allocator.allocate(sizeBytes, queue);
+
+        // use a custom deleter to return the buffer to the CachingAllocator
+        auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
+
+        return alpaka::BufCpuSyclIntel<TElem, TDim, TIdx>(
+            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
+      }
+    };
+
+#endif // ALPAKA_SYCL_ONEAPI_CPU
+
+#ifdef ALPAKA_SYCL_ONEAPI_GPU
+    // FIXME_ pinned host memory for SYCL
+
+    //! The caching memory allocator implementation for the SYCL GPU device
+    template <typename TElem, typename TDim, typename TIdx, typename TQueue>
+    struct CachedBufAlloc<TElem, TDim, TIdx, alpaka::DevGpuSyclIntel, TQueue, void> {
+      template <typename TExtent>
+      ALPAKA_FN_HOST static auto allocCachedBuf(alpaka::DevGpuSyclIntel const& dev, TQueue queue, TExtent const& extent)
+          -> alpaka::BufGpuSyclIntel<TElem, TDim, TIdx> {
+        ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
+
+        auto& allocator = getDeviceCachingAllocator<alpaka::DevGpuSyclIntel, TQueue>(dev);
+
+        size_t width = alpaka::getWidth(extent);
+        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
+        // TODO implement pitch for TDim > 1
+        size_t pitchBytes = widthBytes;
+        size_t size = alpaka::getExtentProduct(extent);
+        size_t sizeBytes = size * sizeof(TElem);
+        void* memPtr = allocator.allocate(sizeBytes, queue);
+
+        // use a custom deleter to return the buffer to the CachingAllocator
+        auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
+
+        return alpaka::BufGpuSyclIntel<TElem, TDim, TIdx>(
+            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
+      }
+    };
+
+#endif  // ALPAKA_SYCL_ONEAPI_GPU
+
   }  // namespace traits
 
   template <typename TElem, typename TIdx, typename TExtent, typename TQueue, typename TDev>

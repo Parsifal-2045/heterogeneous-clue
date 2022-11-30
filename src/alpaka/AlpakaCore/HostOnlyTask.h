@@ -60,6 +60,8 @@ namespace alpaka {
     };
 #endif  // ALPAKA_ACC_GPU_HIP_ENABLED
 
+    // FIXME_ host_only task for SYCL?
+
   }  // namespace trait
 
 }  // namespace alpaka

@@ -145,6 +145,8 @@ export SYCL_CXXFLAGS := -fsycl -Wsycl-strict $(filter-out $(SYCL_UNSUPPORTED_CXX
 endif
 endif
 
+export SYCL_BASE
+
 # to use a different toolchain
 #   - unset ONEAPI_ENV
 #   - set SYCL_BASE appropriately
@@ -619,8 +621,7 @@ $(HWLOC_BASE):
 external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
-	git clone git@github.com:alpaka-group/alpaka.git -b develop $@
-	cd $@ && git checkout b518e8c943a816eba06c3e12c0a7e1b58c8faedc
+	git clone https://github.com/Parsifal-2045/alpaka.git -b develop $@
 
 # Kokkos
 external_kokkos: $(KOKKOS_LIB)

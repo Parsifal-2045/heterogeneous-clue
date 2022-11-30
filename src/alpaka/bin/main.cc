@@ -160,6 +160,19 @@ int main(int argc, char** argv) {
       getOptionalArgument(args, i, weight);
       backends.insert_or_assign(Backend::HIP, weight);
 #endif
+#ifdef ALPAKA_SYCL_ONEAPI_CPU
+    } else if (*i == "--syclcpu") {
+      float weight = 1.;
+      getOptionalArgument(args, i, weight);
+      backends.insert_or_assign(Backend::CPUSYCL, weight);
+#endif
+#ifdef ALPAKA_SYCL_ONEAPI_GPU
+    } else if (*i == "--syclgpu") {
+      float weight = 1.;
+      getOptionalArgument(args, i, weight);
+      backends.insert_or_assign(Backend::GPUSYCL, weight);
+#endif
+
     } else if (*i == "--dim") {
       getArgument(args, i, dim);
     } else if (*i == "--numberOfThreads") {
@@ -242,6 +255,16 @@ int main(int argc, char** argv) {
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
   if (backends.find(Backend::HIP) != backends.end()) {
     cms::alpakatools::initialise<alpaka_rocm_async::Platform>();
+  }
+#endif
+#ifdef ALPAKA_SYCL_ONEAPI_CPU
+  if (backends.find(Backend::CPUSYCL) != backends.end()) {
+    cms::alpakatools::initialise<alpaka_cpu_sycl::Platform>();
+  }
+#endif
+#ifdef ALPAKA_SYCL_ONEAPI_GPU
+  if (backends.find(Backend::GPUSYCL) != backends.end()) {
+    cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
   }
 #endif
 
