@@ -10,6 +10,7 @@ test_cpu: $(TARGET)
 	@echo "Testing $(TARGET)"
 	$(TARGET) --maxEvents 2 --serial
 	$(TARGET) --maxEvents 2 --tbb
+	$(TARGET) --maxEvents 2 --syclcpu
 	@echo "Succeeded"
 test_nvidiagpu: $(TARGET)
 	@echo
@@ -22,6 +23,9 @@ test_amdgpu: $(TARGET)
 	$(TARGET) --maxEvents 2 --hip
 	@echo "Succeeded"
 test_intelgpu:
+	@echo "Testing $(TARGET)"
+	$(TARGET) --maxEvents 2 --syclgpu
+	@echo "Succeeded"
 test_auto:
 .PHONY: test_cpu test_nvidiagpu test_amdgpu test_intelgpu test_auto
 
@@ -223,7 +227,8 @@ $(foreach test,$(TESTS_SERIAL_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
 $(foreach test,$(TESTS_TBB_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
 $(foreach test,$(TESTS_CUDA_EXE),$(eval $(call RUNTEST_template,$(test),nvidiagpu)))
 $(foreach test,$(TESTS_ROCM_EXE),$(eval $(call RUNTEST_template,$(test),amdgpu)))
-# FIXME_ run SYCL tests
+$(foreach test,$(TESTS_SYCL_CPU_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
+$(foreach test,$(TESTS_SYCL_GPU_EXE),$(eval $(call RUNTEST_template,$(test),intelgpu)))
 
 -include $(ALL_DEPENDS)
 
@@ -403,7 +408,7 @@ $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o: $(SRC_DIR)/$(TARGET_NAME)/
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclcpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
 endif
 
 # SYCL GPU backend
@@ -414,5 +419,5 @@ $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o: $(SRC_DIR)/$(TARGET_NAME)/
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclgpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
 endif
