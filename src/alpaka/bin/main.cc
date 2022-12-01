@@ -33,6 +33,10 @@ namespace {
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
               << "[--hip] "
 #endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+              << "[--syclcpu] "
+              << "[--syclgpu] "
+#endif
               << "[--dim D] [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--inputFile "
                  "PATH] [--configFile] [--transfer] [--validation] "
                  "[--empty]\n\n"
@@ -48,6 +52,10 @@ namespace {
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
               << " --hip               Use ROCm/HIP backend\n"
+#endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+              << " --syclcpu           Use SYCL CPU backend\n"
+              << " --syclgpu           Use SYCL GPU backend\n"
 #endif
               << " --dim   Dimensionality of the algorithm (default 2 to run CLUE 2D, use 3 to run CLUE 3D)\n"
               << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
@@ -160,13 +168,11 @@ int main(int argc, char** argv) {
       getOptionalArgument(args, i, weight);
       backends.insert_or_assign(Backend::HIP, weight);
 #endif
-#ifdef ALPAKA_SYCL_ONEAPI_CPU
+#ifdef ALPAKA_ACC_SYCL_PRESENT
     } else if (*i == "--syclcpu") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
       backends.insert_or_assign(Backend::CPUSYCL, weight);
-#endif
-#ifdef ALPAKA_SYCL_ONEAPI_GPU
     } else if (*i == "--syclgpu") {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
@@ -257,12 +263,10 @@ int main(int argc, char** argv) {
     cms::alpakatools::initialise<alpaka_rocm_async::Platform>();
   }
 #endif
-#ifdef ALPAKA_SYCL_ONEAPI_CPU
+#ifdef ALPAKA_ACC_SYCL_PRESENT
   if (backends.find(Backend::CPUSYCL) != backends.end()) {
     cms::alpakatools::initialise<alpaka_cpu_sycl::Platform>();
   }
-#endif
-#ifdef ALPAKA_SYCL_ONEAPI_GPU
   if (backends.find(Backend::GPUSYCL) != backends.end()) {
     cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
   }

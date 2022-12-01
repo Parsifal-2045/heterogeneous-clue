@@ -68,15 +68,13 @@ namespace alpaka {
   using QueueHipRtBlocking = uniform_cuda_hip::detail::QueueUniformCudaHipRt<ApiHipRt, true>;
   using QueueHipRtNonBlocking = uniform_cuda_hip::detail::QueueUniformCudaHipRt<ApiHipRt, false>;
 
-  namespace trait {
-    template <typename TDev, bool TBlocking>
-    class QueueGenericSyclBase;
-  }
-  using QueueCpuSyclIntelBlocking = trait::QueueGenericSyclBase<DevCpuSyclIntel, true>;
-  using QueueCpuSyclIntelNonBlocking = trait::QueueGenericSyclBase<DevCpuSyclIntel, false>;
-  using QueueGpuSyclIntelBlocking = trait::QueueGenericSyclBase<DevGpuSyclIntel, true>;
-  using QueueGpuSyclIntelNonBlocking = trait::QueueGenericSyclBase<DevGpuSyclIntel, false>;
+  template <typename TDev, bool TBlocking>
+  class QueueGenericSyclBase;
 
+  using QueueCpuSyclIntelBlocking = QueueGenericSyclBase<DevCpuSyclIntel, true>;
+  using QueueCpuSyclIntelNonBlocking = QueueGenericSyclBase<DevCpuSyclIntel, false>;
+  using QueueGpuSyclIntelBlocking = QueueGenericSyclBase<DevGpuSyclIntel, true>;
+  using QueueGpuSyclIntelNonBlocking = QueueGenericSyclBase<DevGpuSyclIntel, false>;
 
   // Events
   template <typename TDev>

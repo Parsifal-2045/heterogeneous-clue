@@ -12,7 +12,7 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-  using pointsView = ClusterCollectionAlpaka::ClusterCollectionAlpakaView;
+  using pointsView = ClusterCollectionAlpakaView;
 
   struct KernelResetHist {
     template <typename TAcc>

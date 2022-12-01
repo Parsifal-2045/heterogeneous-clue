@@ -135,7 +135,29 @@ namespace cms::alpakatools {
 #endif  // ALPAKA_ACC_GPU_HIP_ENABLED
 
 #ifdef ALPAKA_SYCL_ONEAPI_CPU
-    // FIXME_ pinned host memory for SYCL
+
+    //! The caching memory allocator implementation for the pinned host memory
+    template <typename TElem, typename TDim, typename TIdx>
+    struct CachedBufAlloc<TElem, TDim, TIdx, alpaka::DevCpu, alpaka::QueueCpuSyclIntelNonBlocking, void> {
+      template <typename TExtent>
+      ALPAKA_FN_HOST static auto allocCachedBuf(alpaka::DevCpu const& dev,
+                                                alpaka::QueueCpuSyclIntelNonBlocking queue,
+                                                TExtent const& extent) -> alpaka::BufCpu<TElem, TDim, TIdx> {
+        ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
+
+        auto& allocator = getHostCachingAllocator<alpaka::QueueCpuSyclIntelNonBlocking>();
+
+        // FIXME the BufCpu does not support a pitch ?
+        size_t size = alpaka::getExtentProduct(extent);
+        size_t sizeBytes = size * sizeof(TElem);
+        void* memPtr = allocator.allocate(sizeBytes, queue);
+
+        // use a custom deleter to return the buffer to the CachingAllocator
+        auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
+
+        return alpaka::BufCpu<TElem, TDim, TIdx>(dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
+      }
+    };
 
     //! The caching memory allocator implementation for the SYCL CPU device
     template <typename TElem, typename TDim, typename TIdx, typename TQueue>
@@ -147,10 +169,7 @@ namespace cms::alpakatools {
 
         auto& allocator = getDeviceCachingAllocator<alpaka::DevCpuSyclIntel, TQueue>(dev);
 
-        size_t width = alpaka::getWidth(extent);
-        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
         // TODO implement pitch for TDim > 1
-        size_t pitchBytes = widthBytes;
         size_t size = alpaka::getExtentProduct(extent);
         size_t sizeBytes = size * sizeof(TElem);
         void* memPtr = allocator.allocate(sizeBytes, queue);
@@ -163,10 +182,31 @@ namespace cms::alpakatools {
       }
     };
 
-#endif // ALPAKA_SYCL_ONEAPI_CPU
+#endif  // ALPAKA_SYCL_ONEAPI_CPU
 
 #ifdef ALPAKA_SYCL_ONEAPI_GPU
-    // FIXME_ pinned host memory for SYCL
+
+    //! The caching memory allocator implementation for the pinned host memory
+    template <typename TElem, typename TDim, typename TIdx>
+    struct CachedBufAlloc<TElem, TDim, TIdx, alpaka::DevCpu, alpaka::QueueGpuSyclIntelNonBlocking, void> {
+      template <typename TExtent>
+      ALPAKA_FN_HOST static auto allocCachedBuf(alpaka::DevCpu const& dev,
+                                                alpaka::QueueGpuSyclIntelNonBlocking queue,
+                                                TExtent const& extent) -> alpaka::BufCpu<TElem, TDim, TIdx> {
+        ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
+
+        auto& allocator = getHostCachingAllocator<alpaka::QueueGpuSyclIntelNonBlocking>();
+
+        size_t size = alpaka::getExtentProduct(extent);
+        size_t sizeBytes = size * sizeof(TElem);
+        void* memPtr = allocator.allocate(sizeBytes, queue);
+
+        // use a custom deleter to return the buffer to the CachingAllocator
+        auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
+
+        return alpaka::BufCpu<TElem, TDim, TIdx>(dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
+      }
+    };
 
     //! The caching memory allocator implementation for the SYCL GPU device
     template <typename TElem, typename TDim, typename TIdx, typename TQueue>
@@ -178,10 +218,7 @@ namespace cms::alpakatools {
 
         auto& allocator = getDeviceCachingAllocator<alpaka::DevGpuSyclIntel, TQueue>(dev);
 
-        size_t width = alpaka::getWidth(extent);
-        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
         // TODO implement pitch for TDim > 1
-        size_t pitchBytes = widthBytes;
         size_t size = alpaka::getExtentProduct(extent);
         size_t sizeBytes = size * sizeof(TElem);
         void* memPtr = allocator.allocate(sizeBytes, queue);
