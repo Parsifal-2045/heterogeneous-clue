@@ -44,6 +44,8 @@ public:
       t.reset();
   }
 
+  void clear(int i) { layerTiles_[i].reset(); }
+
   cms::sycltools::VecArray<int, LayerTilesConstants::maxTileDepth> &operator[](int globalBinId) {
     return layerTiles_[globalBinId];
   }

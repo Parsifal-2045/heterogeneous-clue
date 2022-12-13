@@ -29,7 +29,6 @@ namespace {
 
   PointsCloud readRaw2D(std::ifstream &inputFile, uint32_t n_points) {
     PointsCloud data;
-    data.n = n_points;
     Point raw;
     for (unsigned int ipoint = 0; ipoint < n_points; ++ipoint) {
       inputFile.read(reinterpret_cast<char *>(&raw), sizeof(Point));
@@ -77,7 +76,6 @@ namespace {
       }
       in.close();
     }
-    data.n = data.x.size();
     return data;
   }
 }  // namespace
