@@ -30,14 +30,21 @@ namespace alpaka {
   struct ApiCudaRt;
   struct ApiHipRt;
 
+  namespace detail {
+    struct IntelCpuSelector;
+    struct IntelGpuSelector;
+  }  // namespace detail
+
   // Platforms
   class PltfCpu;
   template <typename TApi>
   class PltfUniformCudaHipRt;
   using PltfCudaRt = PltfUniformCudaHipRt<ApiCudaRt>;
   using PltfHipRt = PltfUniformCudaHipRt<ApiHipRt>;
-  class PltfCpuSyclIntel;
-  class PltfGpuSyclIntel;
+  template <typename TSelector>
+  class PltfGenericSycl;
+  using PltfCpuSyclIntel = PltfGenericSycl<detail::IntelCpuSelector>;
+  using PltfGpuSyclIntel = PltfGenericSycl<detail::IntelGpuSelector>;
 
   // Devices
   class DevCpu;

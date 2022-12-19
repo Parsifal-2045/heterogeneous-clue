@@ -321,13 +321,8 @@ namespace cms::alpakatools {
         // allocate device memory
         return alpaka::allocBuf<std::byte, size_t>(device_, bytes);
       } else if constexpr (std::is_same_v<Device, alpaka::DevCpu>) {
-#ifdef ALPAKA_ACC_SYCL_ENABLED
-        // FIXME_ implement alpaka allocMappedBuf for SYCL
-        return alpaka::allocBuf<std::byte, size_t>(device_, bytes);
-#else
         // allocate pinned host memory accessible by the queue's platform
         return alpaka::allocMappedBuf<alpaka::Pltf<alpaka::Dev<Queue>>, std::byte, size_t>(device_, bytes);
-#endif
       } else {
         // unsupported combination
         static_assert(std::is_same_v<Device, alpaka::Dev<Queue>> or std::is_same_v<Device, alpaka::DevCpu>,

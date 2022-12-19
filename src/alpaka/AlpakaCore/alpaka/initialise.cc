@@ -29,9 +29,14 @@ namespace cms::alpakatools {
   // explicit template instantiation definition
   template void initialise<ALPAKA_ACCELERATOR_NAMESPACE::Platform>();
 
-  template<typename TPlatform>
+  template <typename TPlatform>
   void resetDevices() {
+#ifdef ALPAKA_ACC_SYCL_ENABLED
     devices<TPlatform>.clear();
+    TPlatform::reset();
+#else
+    devices<TPlatform>.clear();
+#endif
   }
 
   // explicit template instantiation definition
