@@ -38,6 +38,7 @@ public:
   }
 
   ALPAKA_FN_HOST_ACC inline constexpr alpakaVect& operator[](int id) { return vecArrays_[id]; }
+  ALPAKA_FN_HOST_ACC inline constexpr const alpakaVect& operator[](int id) const { return vecArrays_[id]; }
 
 private:
   std::array<alpakaVect, nVecArrays> vecArrays_;
