@@ -1,5 +1,5 @@
 #include "DataFormats/PointsCloud.h"
-
+#include "DataFormats/Common.h"
 #include "AlpakaCore/alpakaConfig.h"
 #include "AlpakaCore/alpakaWorkDiv.h"
 #include "CLUEAlgoAlpaka.h"
@@ -7,21 +7,23 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
-  constexpr int reserve = 1000000;
+  
 
   void CLUEAlgoAlpaka::init_device(Queue queue_) {
     d_hist = cms::alpakatools::make_device_buffer<LayerTilesAlpaka[]>(queue_, NLAYERS);
     d_seeds = cms::alpakatools::make_device_buffer<cms::alpakatools::VecArray<int, maxNSeeds>>(queue_);
     d_followers =
-        cms::alpakatools::make_device_buffer<cms::alpakatools::VecArray<int, maxNFollowers>[]>(queue_, reserve);
+        cms::alpakatools::make_device_buffer<AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers>>(queue_);
     hist_ = (*d_hist).data();
     seeds_ = (*d_seeds).data();
-    followers_ = (*d_followers).data();
+    followers_ = d_followers->data();
     const Idx blockSize = 1024;
     Idx gridSize = std::ceil(LayerTilesConstants::nRows * LayerTilesConstants::nColumns / static_cast<float>(blockSize));
     auto WorkDiv1D = cms::alpakatools::make_workdiv<Acc1D>(gridSize, blockSize);
     alpaka::enqueue(queue_, alpaka::createTaskKernel<Acc1D>(WorkDiv1D, KernelSetHistoPtrs(), hist_));
-
+    gridSize = std::ceil(ticl::maxHits / static_cast<float>(blockSize));
+    WorkDiv1D = cms::alpakatools::make_workdiv<Acc1D>(gridSize, blockSize);
+    alpaka::enqueue(queue_, alpaka::createTaskKernel<Acc1D>(WorkDiv1D, KernelSetFollowersPtrs(), followers_));
   }
 
   void CLUEAlgoAlpaka::setup(PointsCloud const &host_pc, PointsCloudAlpaka &d_points, Queue queue_) {

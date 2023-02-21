@@ -5,8 +5,11 @@
 
 #include "AlpakaCore/alpakaConfig.h"
 #include "AlpakaCore/alpakaMemory.h"
+#include "DataFormats/Common.h"
+
 #include "AlpakaDataFormats/alpaka/PointsCloudAlpaka.h"
 #include "AlpakaDataFormats/LayerTilesAlpaka.h"
+
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -25,7 +28,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     LayerTilesAlpaka *hist_;
     cms::alpakatools::VecArray<int, maxNSeeds> *seeds_;
-    cms::alpakatools::VecArray<int, maxNFollowers> *followers_;
+    AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers> *followers_;
 
   private:
     float dc_;
@@ -34,8 +37,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     std::optional<cms::alpakatools::device_buffer<Device, LayerTilesAlpaka[]>> d_hist;
     std::optional<cms::alpakatools::device_buffer<Device, cms::alpakatools::VecArray<int, maxNSeeds>>> d_seeds;
-    std::optional<cms::alpakatools::device_buffer<Device, cms::alpakatools::VecArray<int, maxNFollowers>[]>> d_followers;
-
+    std::optional<cms::alpakatools::device_buffer<Device, AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers>>> d_followers;
     // private methods
     void init_device(Queue stream);
 

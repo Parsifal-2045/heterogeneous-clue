@@ -3,6 +3,8 @@
 
 #include "AlpakaDataFormats/LayerTilesAlpaka.h"
 #include "AlpakaDataFormats/alpaka/PointsCloudAlpaka.h"
+#include "DataFormats/Common.h"
+
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -22,6 +24,33 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
+  struct KernelSetFollowersPtrs {
+    template <typename TAcc>
+    ALPAKA_FN_ACC void operator()(const TAcc &acc, AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers> *d_followers) const {
+      cms::alpakatools::for_each_element_in_grid(
+          acc, ticl::maxHits, [&](uint32_t i) {
+            
+              d_followers->init(i);
+              d_followers->setPtrs(i);
+            
+          });
+    }
+  };
+
+
+  struct KernelResetFollowers {
+    template <typename TAcc>
+    ALPAKA_FN_ACC void operator()(const TAcc &acc, AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers> *d_followers, uint32_t const &numberOfPoints) const {
+      cms::alpakatools::for_each_element_in_grid(
+          acc, numberOfPoints, [&](uint32_t i) {
+            
+              d_followers->clear(i);
+            
+          });
+    }
+  };
+
+
 
   struct KernelResetHist {
     template <typename TAcc>
@@ -37,14 +66,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
   };
 
-  struct KernelResetFollowers {
-    template <typename TAcc>
-    ALPAKA_FN_ACC void operator()(const TAcc &acc,
-                                  cms::alpakatools::VecArray<int, maxNFollowers> *d_followers,
-                                  uint32_t const &numberOfPoints) const {
-      cms::alpakatools::for_each_element_in_grid(acc, numberOfPoints, [&](uint32_t i) { d_followers[i].reset(); });
-    }
-  };
+  // struct KernelResetFollowers {
+  //   template <typename TAcc>
+  //   ALPAKA_FN_ACC void operator()(const TAcc &acc,
+  //                                 cms::alpakatools::VecArray<int, maxNFollowers> *d_followers,
+  //                                 uint32_t const &numberOfPoints) const {
+  //     cms::alpakatools::for_each_element_in_grid(acc, numberOfPoints, [&](uint32_t i) { d_followers[i].reset(); });
+  //   }
+  // };
 
   struct KernelComputeHistogram {
     template <typename TAcc>
@@ -166,7 +195,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc>
     ALPAKA_FN_ACC void operator()(const TAcc &acc,
                                   cms::alpakatools::VecArray<int, maxNSeeds> *d_seeds,
-                                  cms::alpakatools::VecArray<int, maxNFollowers> *d_followers,
+                                  AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers> *d_followers,
                                   pointsView *d_points,
                                   float outlierDeltaFactor,
                                   float dc,
@@ -180,7 +209,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         float rhoi = d_points->rho[i];
         bool isSeed = (deltai > dc) && (rhoi >= rhoc);
         bool isOutlier = (deltai > outlierDeltaFactor * dc) && (rhoi < rhoc);
-
+        auto& followers = *d_followers;
         if (isSeed) {
           // set isSeed as 1
           d_points->isSeed[i] = 1;
@@ -189,7 +218,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           if (!isOutlier) {
             // assert(d_points->nearestHigher[i] < static_cast<int>(numberOfPoints));
             // register as follower of its nearest higher
-            d_followers[d_points->nearestHigher[i]].push_back(acc, i);
+            followers[d_points->nearestHigher[i]].push_back(acc, i);
           }
           d_points->isSeed[i] = 0;
         }
@@ -201,7 +230,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     template <typename TAcc>
     ALPAKA_FN_ACC void operator()(const TAcc &acc,
                                   cms::alpakatools::VecArray<int, maxNSeeds> *d_seeds,
-                                  cms::alpakatools::VecArray<int, maxNFollowers> *d_followers,
+                                  AlpakaSoAVecArray<int, ticl::maxHits, maxNFollowers> *d_followers,
                                   pointsView *d_points) const {
       const auto &seeds = d_seeds[0];
       const auto nSeeds = seeds.size();
@@ -226,8 +255,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           // assert((localStackSize - 1 < localStackSizePerSeed));
           localStack[localStackSize - 1] = -1;
           localStackSize--;
-          const auto &followers = d_followers[idxEndOfLocalStack];
-          const auto followers_size = d_followers[idxEndOfLocalStack].size();
+          const auto &followers = (*d_followers)[idxEndOfLocalStack];
+          const auto followers_size = (*d_followers)[idxEndOfLocalStack].size();
           // loop over followers of last element of localStack
           for (int j = 0; j < followers_size; ++j) {
             // pass id to follower
