@@ -8,7 +8,7 @@
 #include "DataFormats/Math/normalizedPhi.h"
 #include "AlpakaCore/alpakaConfig.h"
 
-#include "AlpakaVecArrayRef.h"
+#include "AlpakaSoAVecArray.h"
 
 #if !defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && !defined(ALPAKA_ACC_GPU_HIP_ENABLED)
 struct int4 {
@@ -64,28 +64,31 @@ public:
   ALPAKA_FN_HOST_ACC int globalBin(float eta, float phi) const { return phiBin(phi) + etaBin(eta) * T::nPhiBins; }
 
   ALPAKA_FN_HOST_ACC inline constexpr void setPtrs(int i) {
-    tiles_[i].setPtr(&sizes_[i]);
+    tiles_.setPtrs(i);
   }
   
   ALPAKA_FN_HOST_ACC inline constexpr void init(int i) {
-    tiles_[i].init();
+    tiles_.init(i);
   }
  
   ALPAKA_FN_HOST_ACC inline constexpr void clear() {
-    for (auto& t : tiles_)
-      t.reset();
+    for (size_t i = 0; i< tiles_.size(); ++i)
+      tiles_.clear(i);
   }
 
-  ALPAKA_FN_HOST_ACC inline constexpr void clear(int i) { tiles_[i].reset(); }
+  ALPAKA_FN_HOST_ACC inline constexpr void clear(int i) { tiles_.clear(i); }
 
-  ALPAKA_FN_HOST_ACC const cms::alpakatools::VecArrayRef<unsigned int, T::tileDepth>& operator[](int globalBinId) const {
-    return tiles_[globalBinId];
+  ALPAKA_FN_HOST_ACC auto& operator[](int i)  {
+    return tiles_[i];
+  }
+
+  ALPAKA_FN_HOST_ACC const auto& operator[](int i) const {
+    return tiles_[i];
   }
 
 private:
-  cms::alpakatools::VecArrayRef<cms::alpakatools::VecArrayRef<unsigned int, T::tileDepth>, T::nBins> tiles_;
+  AlpakaSoAVecArray<unsigned int, T::nBins, T::tileDepth> tiles_;
 
-  std::array<int, T::nBins> sizes_;
 
 };
 

@@ -75,7 +75,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       int nEtaBin = ticl::TileConstants::nEtaBins;
       int nPhiBin = ticl::TileConstants::nPhiBins;
       int nLayers = ticl::TileConstants::nLayers;
-
       cms::alpakatools::for_each_element_in_grid(acc, numberOfPoints, [&](uint32_t clusterIdx) {
         int layerId = d_points->layer[clusterIdx];
         float rhoi{0.f};
@@ -118,6 +117,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                 bool reachable = false;
                 // Still differentiate between silicon and Scintillator.
                 // Silicon has yet to be studied further.
+                // bool isSi = d_points->isSilicon[clusterIdx];
+                // float distanceSqr = isSi * densityXYDistanceSqr + !isSi * d_points->radius[clusterIdx] * d_points->radius[clusterIdx];
+                // reachable = isReachable(d_points->r_over_absz[clusterIdx] * d_points->z[clusterIdx],
+                //                           d_points->r_over_absz[otherClusterIdx] * d_points->z[clusterIdx],
+                //                           d_points->phi[clusterIdx],
+                //                           d_points->phi[otherClusterIdx],
+                //                           distanceSqr);
                 if (d_points->isSilicon[clusterIdx]) {
                   reachable = isReachable(d_points->r_over_absz[clusterIdx] * d_points->z[clusterIdx],
                                           d_points->r_over_absz[otherClusterIdx] * d_points->z[clusterIdx],
@@ -132,14 +138,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                           d_points->radius[clusterIdx] * d_points->radius[clusterIdx]);
                 }
 
-                if (reachable) {
-                  float factor_same_layer_different_cluster = (onSameLayer && !densityOnSameLayer) ? 0.f : 1.f;
-                  auto energyToAdd =
-                      ((clusterIdx == otherClusterIdx) ? 1.f
-                                                       : kernelDensityFactor * factor_same_layer_different_cluster) *
-                      d_points->energy[otherClusterIdx];
-                  rhoi += energyToAdd;
-                }
+                // if (reachable) {
+                //   float factor_same_layer_different_cluster = (onSameLayer && !densityOnSameLayer) ? 0.f : 1.f;
+                //   auto energyToAdd =
+                //       ((clusterIdx == otherClusterIdx) ? 1.f
+                //                                        : kernelDensityFactor * factor_same_layer_different_cluster) *
+                //       d_points->energy[otherClusterIdx];
+                //   rhoi += energyToAdd;
+                // }
+                uint factor_same_layer_different_cluster = !(onSameLayer && !densityOnSameLayer);
+                bool isSameCluster = clusterIdx == otherClusterIdx;
+                rhoi += reachable* (isSameCluster + kernelDensityFactor * factor_same_layer_different_cluster * !isSameCluster) * d_points->energy[otherClusterIdx];
+
               }  // end of loop on possible compatible clusters
             }    // end of loop over phi-bin region
           }      // end of loop over eta-bin region
