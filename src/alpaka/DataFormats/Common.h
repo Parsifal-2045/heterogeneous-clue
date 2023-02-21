@@ -18,6 +18,8 @@ namespace ticl {
 
   constexpr int maxNSeeds = 10000;
   constexpr int maxNFollowers = 128;
+  constexpr int maxHits = 1000000;
+
   constexpr int localStackSizePerSeed = 128;
 
 }  // namespace ticl
